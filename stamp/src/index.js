@@ -15,10 +15,24 @@ var _ua = (function(u){
       || u.indexOf("blackberry") != -1
   }
 })(window.navigator.userAgent.toLowerCase());
+var hnt=["1年生の廊下",
+		"2年B組前の廊下",
+		"3年C組前",
+		"地学室の近く",
+		"金券販売所前",
+		"体育館の吹き抜け",
+		"グリーンコート",
+		"化学部の模擬店",
+		"特別室の近く",
+		"Neo Kosho Free Wifiの発信元",
+		"3年B組共田くんの財布の中",
+		"地球上のどこか"];
+
 var context,context2;
 var w=window.outerWidth;
 var h=window.outerHeight;
 var i,i2;
+var ymes;
 
 var gearR=200;
 
@@ -27,9 +41,7 @@ window.addEventListener("resize",changeSize);
 
 function load(){
 	if(_ua.Mobile||_ua.Tablet){
-		var header=document.getElementById("header");
-		header.style.top="-100px";
-		//todo:insert menu button
+		//something
 	}
 	init();
 }
@@ -46,8 +58,8 @@ function init(){
 }
 function changeSize(){
 	w=document.body.clientWidth;
-	h=Math.min(document.documentElement.scrollHeight||document.body.scrollHeight,window.innerHeight)-17;
-
+	//h=Math.min(document.documentElement.scrollHeight||document.body.scrollHeight,window.innerHeight)-17;
+	h=window.innerHeight-17;
 	var con=context.style;
 	var con2=context2.style;
 
@@ -79,13 +91,70 @@ function changeSpeed(){
 function start(){
 	if(!localStorage.getItem("fukofes2017_str")){
 		if(!confirm("はじめにルール説明をお読みください。\n（まだ読まれていない方はキャンセルボタンを押してください）\n\nゲームを開始しますか？")){
-		return;
+			return;
+		}
+	}
+	if(!(window.File&&window.FileReader)){
+		if(!confirm("お使いのブラウザは参加条件を満たしていない可能性があります。\nゲーム画面へ進みますか？")){
+			return;
 		}
 	}
 	localStorage.setItem("fukofes2017_str","Have a great time!");
 	document.getElementById("text").style.display="none";
 	document.getElementById("game").style.display="block";
-	//ここにゲームスタート時の描画処理
+}
+function open_file(){
+	ymes="・QRコード以外がなるべく入らないようにして撮影する\n";
+	ymes+="・QRコードを正面から15cm～20cm離れて撮影する\n";
+	ymes+="・QRコードにピントをあてる\n";
+	ymes+="・QRコードが中央に位置するよう撮影する";
+	alert("カメラを起動してQRコードを撮影してください。");
+	alert("～～撮影のヒント～～\n\n"+ymes);
+	document.getElementById('up').click();
+}
+function path(number){
+	document.getElementById("upload").style.display="none";
+	document.getElementById("hint").style.display="block";
+	hint.innerHTML="<h3>～ヒント～</h3>"+hnt[number-1]+"を探してみよう<br><br><button class='button5' onclick='close()'>ヒントを閉じる</button>";
+//	var co=document.createElement("button");
+//	co.onclick="close()";
+//	document.getElementById("hint").appendChild(co);
+}
+function close(){
+	document.getElementById("hint").style.display="none";
+	document.getElementById("upload").style.display="block";
+}
+function pickup(f){
+	if(f.length==0){
+		alert("QRコードを撮影してください");
+		return;
+	}else if(f.length!=1){
+		alert("複数ファイルを選択しないでください");
+		return;
+	}
+	var file=f[0];
+	if(!file.type.match(/image.*/)){
+		alert("これは画像として認識できません");
+		return;
+	}
+	var time_lost=new Date(file.lastModified);
+	var lim=60;//画像の有効期限(秒)
+	if(Math.abs(time_lost.getTime()-Date.now())>lim*1000){
+		alert("撮影から"+(lim/60)+"分以上経過しています。\n再度撮影し直してください。");
+		//return;
+	}
+	var FR=new FileReader();
+	FR.readAsDataURL(file);
+	FR.onload=function(){
+		qrcode.callback=function(res){
+			if(res=="error decoding QR Code"){
+				alert("画像からQRコードを検出できませんでした。\nもう一度お試しください。");
+			return;
+			}
+			alert(res);
+		}
+		qrcode.decode(FR.result);
+	}
 }
 function what(){
 	localStorage.setItem("fukofes2017_str","Have a great time!");
@@ -93,6 +162,7 @@ function what(){
 	document.getElementById("its").style.display="block";
 }
 function retop(){
+	document.getElementById("game").style.display="none";
 	document.getElementById("its").style.display="none";
 	document.getElementById("text").style.display="block";
 }
