@@ -115,10 +115,7 @@ function open_file(){
 function path(number){
 	document.getElementById("upload").style.display="none";
 	document.getElementById("hint").style.display="block";
-	hint.innerHTML="<h3>～ヒント～</h3>"+hnt[number-1]+"を探してみよう<br><br><button class='button5' onclick='close()'>ヒントを閉じる</button>";
-//	var co=document.createElement("button");
-//	co.onclick="close()";
-//	document.getElementById("hint").appendChild(co);
+	cent_hint.innerHTML="<h3>～ヒント～</h3>"+hnt[number-1]+"を探してみよう<br><br>";
 }
 function close(){
 	document.getElementById("hint").style.display="none";
