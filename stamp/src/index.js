@@ -50,6 +50,7 @@ window.addEventListener("popstate",function(){
 function load(){
 	if(_ua.Mobile||_ua.Tablet){
 		//something
+
 	}
 	if(!localStorage){
 		swal({title:"ERROR",text:"お使いの端末では、ゲームが正常に動作しない可能性があります。対応端末をご利用ください。",typr:"error"},function(){pf=false;});
@@ -509,6 +510,7 @@ function tophp(res,hack){
 	q.send(res);
 	if(localStorage.getItem("fukofes2017_str_off")&&corr){
 		shs(q,res);
+
 	}
 }
 function what(){
@@ -521,7 +523,9 @@ function what_h(){
 	what();
 }
 function retop(){
+
 	history.pushState("","スタンプラリートップ",mainloca+"");
+
 	document.getElementById("game").style.display="none";
 	document.getElementById("its").style.display="none";
 	document.getElementById("text").style.display="block";
