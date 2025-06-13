@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>カウンター</title>
+	<style>
+		html{ height: 100%; }
+		body{
+			width: calc(100% - 16px);
+			height: calc(100% - 16px);
+			display: flex;
+			flex-direction: column;
+		}
+		#main{
+			width: 100%; height: 70%;
+			display: flex;
+			flex-direction: column;
+
+			button{
+				width: 100%;
+				flex: 1;
+				margin: 2px 0;
+				color: white;
+				font-size: 2rem;
+			}
+
+			button:first-of-type{
+				background-color: #4169e1;
+			}
+			button:first-of-type:hover{
+				background-color: #2149c1;
+			}
+			button:last-of-type{
+				background-color: #ff69b4;
+			}
+			button:last-of-type:hover{
+				background-color: #df4994;
+			}
+		}
+		#setting{
+			flex: 1;
+			display: flex;
+			button{
+				flex: 1;
+				margin: 2px;
+				border: 1px solid black;
+				font-size: 1.6rem;
+			}
+			button:hover{
+				background-color: #a0a0a0;
+			}
+		}
+		#log{
+			height: 2rem;
+		}
+
+		.dialog_overlay {
+			position: fixed;
+			z-index: 9999;
+			background: rgba(0,0,0,0.4);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 100vw; height: 100vh;
+
+			dialog{
+				border: none;
+				border-radius: 12px;
+				box-shadow: 0 2px 20px rgba(0,0,0,0.25);
+				padding: 30px 10px;
+				min-width: 280px;
+				font-size: 1.1em;
+				position: relative;
+				max-width: 90vw;
+				max-height: 80vh;
+			
+				> div{
+					margin-bottom: 1.5em;
+					word-break: break-all;
+					overflow-y: scroll;
+					max-height: 75vh;
+				}
+				> button{
+					position: absolute;
+					right: 20px; bottom: 12px;
+					padding: 8px 20px;
+					border-radius: 8px;
+					border: none;
+					background: #0078d4;
+					font-weight: bold;
+					cursor: pointer;
+					transition: background 0.2s;
+				}
+				> button:hover{
+					background: #005fa3;
+				}
+			}
+		}
+
+	</style>
+</head>
+<body>
+	<template id="dialog_template">
+		<div class="dialog_overlay">
+			<dialog open>
+				<div></div>
+				<button>閉じる</button>
+			</dialog>
+		</div>
+	</template>
+	<div id="main">
+		<button class="send" value="man">男性</button>
+		<button class="send" value="woman">女性</button>
+	</div>
+	<div id="setting">
+		<button id="help">操作説明</button>
+		<button class="send" value="cancel">取り消し</button>
+		<button id="check_log">ログを表示</button>
+	</div>
+	<div id="log"></div>
+	<script>
+		const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbwftkwTkuGqr1m-35VvwxHi0yglPqCce9fnXTu8ZbQjbenya2-7uOxQSRo5etzkAa92/exec";
+		const SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1TUrYGDfbMLFTjlrJc_rWBQeqKVBr9yUbvWDjlOClDXU/edit?usp=sharing";
+		const LOCALSTRAGE_ID = "FukoFes_count_UUID";
+
+		let myIP = '0.0.0.0';
+		(async () => {
+			try {
+				const response=await fetch('https://api.ipify.org?format=json');
+				if (!response.ok){throw new Error('HTTP error');}
+				const data=await response.json();
+				myIP = data.ip || '0.0.0.0';
+			} catch (e) {
+				myIP = '0.0.0.0';
+			}
+		})();
+		const my_UUID = localStorage.getItem(LOCALSTRAGE_ID) || (() => {
+			const temp = crypto.randomUUID();
+			localStorage.setItem(LOCALSTRAGE_ID, temp);
+			return temp;
+		})();
+
+
+		async function post_text_to_gas(text_data) {
+			if(text_data=="") return false;
+			const sleep=(ms)=>{return new Promise(resolve => setTimeout(resolve, ms));};
+			const max_retries=5;
+
+			console.log("【SEND】",text_data);
+
+			for (let i=0; i<max_retries; i++) {
+				try {
+					const res=await fetch(API_ENDPOINT+"#"+Date.now(), {
+						method: 'POST',
+						headers: { 'Content-Type': 'text/plain' },
+						body: text_data
+					});
+					if(!res.ok){throw new Error(`HTTP ${res.status}`);}
+					return await res.text();
+				} catch (err) {
+					if(i<max_retries-1) {
+						await sleep(Math.floor(Math.random()*901)+100);
+					} else {
+						alert("【エラー】正常に送信できませんでした。予備端末への交換をオススメします。\n何度もこのエラーが表示される場合は、ネットワークの問題の可能性があります。");
+					}
+				}
+			}
+			reject();
+		}
+
+		function show_message_dialog(message_text) {
+			document.querySelectorAll('.message_dialog_overlay').forEach(e => e.remove());
+			const overlay = dialog_template.content.firstElementChild.cloneNode(true);
+
+			overlay.querySelector('dialog > div').innerHTML = message_text;
+			const button = overlay.querySelector('dialog > button');
+			const dialog = overlay.querySelector('dialog');
+
+			overlay.addEventListener('click', e => {
+				if (e.target === overlay) button.click();
+			});
+			button.addEventListener("click", e=>{
+				dialog.close(); overlay.remove();
+			});
+			dialog.addEventListener('click', e => e.stopPropagation());
+
+			document.body.appendChild(overlay);
+		}
+
+
+
+
+		Array.from(document.getElementsByClassName('send')).forEach(e => {
+			e.addEventListener("click", () => {
+				const now_time = (() => {
+					const pad = n => n.toString().padStart(2, '0');
+					const d = new Date();
+					return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+				})();
+				const send_text = now_time + "," + myIP + "," + my_UUID + "," + e.value;
+				post_text_to_gas(send_text)
+					.then(() => {
+						log.textContent = now_time + "　　　" + e.value + "を登録しました";
+					})
+					.catch(() => {
+						log.textContent = now_time + "　　　登録に失敗しました";
+					})
+			});
+		});
+		check_log.addEventListener("click", () => {
+			show_message_dialog(`
+<div style="font-size: 1.2rem; margin-bottom: 5px;">
+	<h3>【注意】</h3>
+	以下のリンクを押すと集積しているスプレッドシートを開くことが出来ます。<br>
+	ただし、このシステムを使用している全員が同じスプレッドシートに集計されます。<br>
+	そのため、以下に示すこの端末の「IPアドレス」および「端末固有ID」を使用してフィルタリングしてください。<br><br>
+	IPアドレス：<input disabled style="font-size: 1.2rem" value="${myIP}" size=${my_UUID.length}><br>
+	端末固有ID：<input disabled style="font-size: 1.2rem" value="${my_UUID}" size=${my_UUID.length}><br><br><br>
+	<a target="_blank" href="${SPREADSHEET_URL}">集積スプレッドシートを閲覧する</a>
+</div>
+		`);
+		});
+		help.addEventListener("click", () => {
+			show_message_dialog(`
+<h3>1.操作方法</h3>
+男性の来場者が来校した場合は「男性」を、女性の来場者が来校した場合は「女性」を押してください。
+
+<h3>2.キャンセルボタン</h3>
+誤って登録した場合は「取り消し」ボタンを押してください。データベースに時刻が記録されます。<br>
+例:男性→女性→キャンセル(誤操作)の場合はもう一度、女性ボタンを押し、キャンセル操作を取り消してください。<br>
+
+<h3>3.注意</h3>
+「ログを表示」ボタンを押すと現時点での全ログが表示されます。<br>
+ただし不明なIPからのアクセスや「取り消し」操作等により、実際の人数と違う場合があるため、終わり次第フィルタをかけ、手動で正確な値を求めましょう。
+			`);
+		});
+	</script>
+</body>
+</html>
